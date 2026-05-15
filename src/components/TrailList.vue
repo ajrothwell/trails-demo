@@ -30,7 +30,7 @@ function ensureVisible(objectid: number): void {
     const cRect = container.getBoundingClientRect()
     if (elRect.top >= cRect.top && elRect.bottom <= cRect.bottom) return
   }
-  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  el.scrollIntoView({ block: 'nearest', behavior: 'instant' })
 }
 
 watch(
