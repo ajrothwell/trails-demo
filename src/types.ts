@@ -6,6 +6,7 @@ export interface TrailProperties {
   trail_system: string | null
   segment: string | null
   trail_status: string | null
+  facility_type: string | null
   length_miles: number | null
 }
 

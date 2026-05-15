@@ -12,15 +12,53 @@ const emit = defineEmits<{
   select: [objectid: number]
 }>()
 
-function displayLabel(feature: TrailFeature): string {
+function baseLabel(feature: TrailFeature): string {
   const name = feature.properties.name?.trim() || '(unnamed)'
   const segment = feature.properties.segment?.trim()
   return segment ? `${name} — ${segment}` : name
 }
 
-const groups = computed(() => {
+function disambiguator(feature: TrailFeature, siblings: TrailFeature[]): string {
+  const ft = feature.properties.facility_type?.trim()
+  const ftValues = siblings.map((f) => f.properties.facility_type?.trim() || '')
+  if (ft && new Set(ftValues).size === siblings.length) return ft
+
+  const len = feature.properties.length_miles
+  const lenValues = siblings.map((f) => f.properties.length_miles ?? -1)
+  if (len != null && new Set(lenValues).size === siblings.length) return `${len.toFixed(2)} mi`
+
+  return `#${feature.properties.objectid}`
+}
+
+interface LabeledFeature {
+  objectid: number
+  feature: TrailFeature
+  label: string
+}
+
+const groups = computed<Array<readonly [string, LabeledFeature[]]>>(() => {
   if (props.state.status !== 'loaded') return []
-  return Object.entries(props.state.grouped).sort(([a], [b]) => a.localeCompare(b))
+  const entries = Object.entries(props.state.grouped).sort(([a], [b]) => a.localeCompare(b))
+
+  return entries.map(([system, features]) => {
+    const bases = new Map<string, TrailFeature[]>()
+    for (const feature of features) {
+      const key = baseLabel(feature)
+      const list = bases.get(key) ?? []
+      list.push(feature)
+      bases.set(key, list)
+    }
+
+    const labeled: LabeledFeature[] = features.map((feature) => {
+      const base = baseLabel(feature)
+      const siblings = bases.get(base) ?? [feature]
+      const label =
+        siblings.length === 1 ? base : `${base} (${disambiguator(feature, siblings)})`
+      return { objectid: feature.properties.objectid, feature, label }
+    })
+
+    return [system, labeled] as const
+  })
 })
 </script>
 
@@ -31,19 +69,19 @@ const groups = computed(() => {
       {{ state.message }}
     </p>
     <template v-else>
-      <section v-for="[system, features] in groups" :key="system" class="trail-list__section">
+      <section v-for="[system, items] in groups" :key="system" class="trail-list__section">
         <h2 class="trail-list__heading">{{ system }}</h2>
         <ul class="trail-list__items">
           <li
-            v-for="feature in features"
-            :key="feature.properties.objectid"
+            v-for="item in items"
+            :key="item.objectid"
             class="trail-list__item"
-            :class="{ 'trail-list__item--hovered': hoveredId === feature.properties.objectid }"
-            @mouseenter="emit('update:hoveredId', feature.properties.objectid)"
+            :class="{ 'trail-list__item--hovered': hoveredId === item.objectid }"
+            @mouseenter="emit('update:hoveredId', item.objectid)"
             @mouseleave="emit('update:hoveredId', null)"
-            @click="emit('select', feature.properties.objectid)"
+            @click="emit('select', item.objectid)"
           >
-            {{ displayLabel(feature) }}
+            {{ item.label }}
           </li>
         </ul>
       </section>
