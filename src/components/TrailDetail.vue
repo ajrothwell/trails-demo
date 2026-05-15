@@ -56,11 +56,11 @@ const FIELDS: FieldConfig[] = [
 ]
 
 const rows = computed(() =>
-  FIELDS.flatMap((field) => {
+  FIELDS.map((field) => {
     const value = props.feature.properties[field.key]
-    if (value == null || value === '') return []
-    const display = field.format ? field.format(value) : String(value)
-    return [{ label: field.label, value: display }]
+    const isEmpty = value == null || value === ''
+    const display = isEmpty ? '—' : field.format ? field.format(value) : String(value)
+    return { label: field.label, value: display, isEmpty }
   }),
 )
 </script>
@@ -82,7 +82,7 @@ const rows = computed(() =>
     <dl class="trail-detail__fields">
       <template v-for="row in rows" :key="row.label">
         <dt>{{ row.label }}</dt>
-        <dd>{{ row.value }}</dd>
+        <dd :class="{ 'trail-detail__empty': row.isEmpty }">{{ row.value }}</dd>
       </template>
     </dl>
   </div>
@@ -145,5 +145,8 @@ const rows = computed(() =>
   margin: 0;
   color: #222;
   overflow-wrap: anywhere;
+}
+.trail-detail__fields dd.trail-detail__empty {
+  color: #bbb;
 }
 </style>
