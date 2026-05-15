@@ -9,7 +9,7 @@ import { useTrails } from '@/composables/useTrails'
 import type { TrailFeature } from '@/types'
 
 const { state } = useTrails()
-const hoveredId = ref<number | null>(null)
+const hoveredIds = ref<number[]>([])
 const selectedId = ref<number | null>(null)
 const trailMap = ref<InstanceType<typeof TrailMap> | null>(null)
 
@@ -17,6 +17,10 @@ const selectedFeature = computed(() => {
   if (state.value.status !== 'loaded' || selectedId.value == null) return null
   return state.value.features.find((f) => f.properties.objectid === selectedId.value) ?? null
 })
+
+const highlightIds = computed<number[]>(() =>
+  selectedId.value != null ? [selectedId.value] : hoveredIds.value,
+)
 
 function handleSelect(objectid: number) {
   selectedId.value = objectid
@@ -40,7 +44,7 @@ function handleClose() {
       <aside class="app__list">
         <div class="app__list-scroll">
           <TrailList
-            v-model:hovered-id="hoveredId"
+            v-model:hovered-ids="hoveredIds"
             :state="state"
             @select="handleSelect"
             @select-system="handleSelectSystem"
@@ -54,8 +58,7 @@ function handleClose() {
         <TrailMap
           ref="trailMap"
           :state="state"
-          :hovered-id="hoveredId"
-          :selected-id="selectedId"
+          :highlight-ids="highlightIds"
           @select="handleSelect"
         />
       </section>

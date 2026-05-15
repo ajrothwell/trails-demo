@@ -24,8 +24,7 @@ const cyclomediaConfig: CyclomediaConfig = {
 
 const props = defineProps<{
   state: TrailsState
-  hoveredId: number | null
-  selectedId: number | null
+  highlightIds: number[]
 }>()
 
 const emit = defineEmits<{
@@ -43,9 +42,9 @@ const source = computed(() => ({
 }))
 
 const highlightFilter = computed<FilterSpecification>(() => [
-  '==',
+  'in',
   ['get', 'objectid'],
-  props.selectedId ?? props.hoveredId ?? -1,
+  ['literal', props.highlightIds],
 ])
 
 const mapInstance = ref<MapLibreMap | null>(null)

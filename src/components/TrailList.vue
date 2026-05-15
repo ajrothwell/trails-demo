@@ -4,14 +4,18 @@ import type { TrailFeature, TrailsState } from '@/types'
 
 const props = defineProps<{
   state: TrailsState
-  hoveredId: number | null
+  hoveredIds: number[]
 }>()
 
 const emit = defineEmits<{
-  'update:hoveredId': [value: number | null]
+  'update:hoveredIds': [value: number[]]
   select: [objectid: number]
   selectSystem: [features: TrailFeature[]]
 }>()
+
+function singleHoveredId(): number | null {
+  return props.hoveredIds.length === 1 ? props.hoveredIds[0] : null
+}
 
 function baseLabel(feature: TrailFeature): string {
   const name = feature.properties.name?.trim() || '(unnamed)'
@@ -73,6 +77,8 @@ const groups = computed<Array<readonly [string, LabeledFeature[]]>>(() => {
       <section v-for="[system, items] in groups" :key="system" class="trail-list__section">
         <h2
           class="trail-list__heading"
+          @mouseenter="emit('update:hoveredIds', items.map((i) => i.objectid))"
+          @mouseleave="emit('update:hoveredIds', [])"
           @click="emit('selectSystem', items.map((i) => i.feature))"
         >
           {{ system }}
@@ -82,9 +88,9 @@ const groups = computed<Array<readonly [string, LabeledFeature[]]>>(() => {
             v-for="item in items"
             :key="item.objectid"
             class="trail-list__item"
-            :class="{ 'trail-list__item--hovered': hoveredId === item.objectid }"
-            @mouseenter="emit('update:hoveredId', item.objectid)"
-            @mouseleave="emit('update:hoveredId', null)"
+            :class="{ 'trail-list__item--hovered': singleHoveredId() === item.objectid }"
+            @mouseenter="emit('update:hoveredIds', [item.objectid])"
+            @mouseleave="emit('update:hoveredIds', [])"
             @click="emit('select', item.objectid)"
           >
             {{ item.label }}
