@@ -29,6 +29,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [objectid: number]
+  hover: [objectid: number | null]
 }>()
 
 const EMPTY_COLLECTION = {
@@ -91,6 +92,23 @@ function handleLineClick(event: MapLayerMouseEvent): void {
   if (typeof objectid === 'number') emit('select', objectid)
 }
 
+let lastHoverId: number | null = null
+
+function handleLineMousemove(event: MapLayerMouseEvent): void {
+  const feature = event.features?.[0]
+  const objectid = feature?.properties?.objectid
+  const next = typeof objectid === 'number' ? objectid : null
+  if (next === lastHoverId) return
+  lastHoverId = next
+  emit('hover', next)
+}
+
+function handleLineMouseleave(): void {
+  if (lastHoverId === null) return
+  lastHoverId = null
+  emit('hover', null)
+}
+
 defineExpose({ zoomToFeatures })
 </script>
 
@@ -122,6 +140,8 @@ defineExpose({ zoomToFeatures })
       :source="source"
       :paint="{ 'line-color': '#000000', 'line-opacity': 0.001, 'line-width': 14 }"
       @click="handleLineClick"
+      @mousemove="handleLineMousemove"
+      @mouseleave="handleLineMouseleave"
     />
   </PhilaMap>
 </template>

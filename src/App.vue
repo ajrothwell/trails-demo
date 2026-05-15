@@ -70,6 +70,10 @@ function handleSelectSystem(features: TrailFeature[]) {
 function handleClose() {
   selectedId.value = null
 }
+
+function handleMapHover(objectid: number | null) {
+  hoveredIds.value = objectid != null ? [objectid] : []
+}
 </script>
 
 <template>
@@ -96,6 +100,7 @@ function handleClose() {
           :state="filteredState"
           :highlight-ids="highlightIds"
           @select="handleSelect"
+          @hover="handleMapHover"
         />
       </section>
     </div>

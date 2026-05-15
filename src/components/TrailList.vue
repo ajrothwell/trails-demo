@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import type { TrailFeature, TrailsState } from '@/types'
 
 const props = defineProps<{
@@ -16,6 +16,31 @@ const emit = defineEmits<{
 function singleHoveredId(): number | null {
   return props.hoveredIds.length === 1 ? props.hoveredIds[0] : null
 }
+
+const listRoot = ref<HTMLDivElement | null>(null)
+
+function ensureVisible(objectid: number): void {
+  const root = listRoot.value
+  if (!root) return
+  const el = root.querySelector<HTMLLIElement>(`[data-objectid="${objectid}"]`)
+  if (!el) return
+  const container = root.parentElement
+  if (container) {
+    const elRect = el.getBoundingClientRect()
+    const cRect = container.getBoundingClientRect()
+    if (elRect.top >= cRect.top && elRect.bottom <= cRect.bottom) return
+  }
+  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+}
+
+watch(
+  () => props.hoveredIds,
+  async (ids) => {
+    if (ids.length !== 1) return
+    await nextTick()
+    ensureVisible(ids[0])
+  },
+)
 
 function baseLabel(feature: TrailFeature): string {
   const name = feature.properties.name?.trim() || '(unnamed)'
@@ -68,7 +93,7 @@ const groups = computed<Array<readonly [string, LabeledFeature[]]>>(() => {
 </script>
 
 <template>
-  <div class="trail-list">
+  <div ref="listRoot" class="trail-list">
     <p v-if="state.status === 'loading'" class="trail-list__status">Loading trails…</p>
     <p v-else-if="state.status === 'error'" class="trail-list__status trail-list__status--error">
       {{ state.message }}
@@ -89,6 +114,7 @@ const groups = computed<Array<readonly [string, LabeledFeature[]]>>(() => {
             :key="item.objectid"
             class="trail-list__item"
             :class="{ 'trail-list__item--hovered': singleHoveredId() === item.objectid }"
+            :data-objectid="item.objectid"
             @mouseenter="emit('update:hoveredIds', [item.objectid])"
             @mouseleave="emit('update:hoveredIds', [])"
             @click="emit('select', item.objectid)"
@@ -140,5 +166,6 @@ const groups = computed<Array<readonly [string, LabeledFeature[]]>>(() => {
 }
 .trail-list__item--hovered {
   background: #fff4d6;
+  font-weight: 700;
 }
 </style>
