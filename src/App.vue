@@ -1,6 +1,12 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { AppHeader } from '@phila/phila-ui-app-header'
 import { AppFooter } from '@phila/phila-ui-app-footer'
+import TrailList from '@/components/TrailList.vue'
+import { useTrails } from '@/composables/useTrails'
+
+const { state } = useTrails()
+const hoveredId = ref<number | null>(null)
 </script>
 
 <template>
@@ -8,7 +14,7 @@ import { AppFooter } from '@phila/phila-ui-app-footer'
     <AppHeader id="main-nav" />
     <div class="app__body">
       <aside class="app__list">
-        <p style="padding: 1rem">Trail list goes here</p>
+        <TrailList v-model:hovered-id="hoveredId" :state="state" />
       </aside>
       <section class="app__map">
         <p style="padding: 1rem">Map goes here</p>
