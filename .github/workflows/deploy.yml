@@ -34,6 +34,10 @@ jobs:
           VITE_FA_AUTH_TOKEN: ${{ secrets.VITE_FA_AUTH_TOKEN }}
 
       - run: pnpm build
+        env:
+          VITE_CYCLOMEDIA_USERNAME: ${{ secrets.VITE_CYCLOMEDIA_USERNAME }}
+          VITE_CYCLOMEDIA_PASSWORD: ${{ secrets.VITE_CYCLOMEDIA_PASSWORD }}
+          VITE_CYCLOMEDIA_API_KEY: ${{ secrets.VITE_CYCLOMEDIA_API_KEY }}
 
       - uses: actions/configure-pages@v5
 
