@@ -50,23 +50,25 @@ const highlightFilter = computed<FilterSpecification>(() => [
 
 const mapInstance = ref<MapLibreMap | null>(null)
 
-function featureBounds(
-  feature: TrailFeature,
+function combinedBounds(
+  features: TrailFeature[],
 ): [[number, number], [number, number]] | null {
-  const lines =
-    feature.geometry.type === 'LineString'
-      ? [feature.geometry.coordinates]
-      : feature.geometry.coordinates
   let minX = Infinity
   let minY = Infinity
   let maxX = -Infinity
   let maxY = -Infinity
-  for (const line of lines) {
-    for (const [x, y] of line) {
-      if (x < minX) minX = x
-      if (y < minY) minY = y
-      if (x > maxX) maxX = x
-      if (y > maxY) maxY = y
+  for (const feature of features) {
+    const lines =
+      feature.geometry.type === 'LineString'
+        ? [feature.geometry.coordinates]
+        : feature.geometry.coordinates
+    for (const line of lines) {
+      for (const [x, y] of line) {
+        if (x < minX) minX = x
+        if (y < minY) minY = y
+        if (x > maxX) maxX = x
+        if (y > maxY) maxY = y
+      }
     }
   }
   if (!Number.isFinite(minX)) return null
@@ -76,10 +78,10 @@ function featureBounds(
   ]
 }
 
-function zoomToFeature(feature: TrailFeature): void {
+function zoomToFeatures(features: TrailFeature[]): void {
   const map = mapInstance.value
   if (!map) return
-  const bounds = featureBounds(feature)
+  const bounds = combinedBounds(features)
   if (!bounds) return
   map.fitBounds(bounds, { padding: 60, maxZoom: 17, duration: 600 })
 }
@@ -90,7 +92,7 @@ function handleLineClick(event: MapLayerMouseEvent): void {
   if (typeof objectid === 'number') emit('select', objectid)
 }
 
-defineExpose({ zoomToFeature })
+defineExpose({ zoomToFeatures })
 </script>
 
 <template>

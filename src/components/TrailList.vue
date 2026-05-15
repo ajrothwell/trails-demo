@@ -10,6 +10,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:hoveredId': [value: number | null]
   select: [objectid: number]
+  selectSystem: [features: TrailFeature[]]
 }>()
 
 function baseLabel(feature: TrailFeature): string {
@@ -70,7 +71,12 @@ const groups = computed<Array<readonly [string, LabeledFeature[]]>>(() => {
     </p>
     <template v-else>
       <section v-for="[system, items] in groups" :key="system" class="trail-list__section">
-        <h2 class="trail-list__heading">{{ system }}</h2>
+        <h2
+          class="trail-list__heading"
+          @click="emit('selectSystem', items.map((i) => i.feature))"
+        >
+          {{ system }}
+        </h2>
         <ul class="trail-list__items">
           <li
             v-for="item in items"
@@ -108,8 +114,13 @@ const groups = computed<Array<readonly [string, LabeledFeature[]]>>(() => {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #555;
-  padding: 0.25rem 1rem;
+  padding: 0.35rem 1rem;
   margin: 0;
+  cursor: pointer;
+}
+.trail-list__heading:hover {
+  background: #eef4fb;
+  color: #2176d2;
 }
 .trail-list__items {
   list-style: none;

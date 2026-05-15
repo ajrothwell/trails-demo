@@ -6,6 +6,7 @@ import TrailList from '@/components/TrailList.vue'
 import TrailMap from '@/components/TrailMap.vue'
 import TrailDetail from '@/components/TrailDetail.vue'
 import { useTrails } from '@/composables/useTrails'
+import type { TrailFeature } from '@/types'
 
 const { state } = useTrails()
 const hoveredId = ref<number | null>(null)
@@ -20,7 +21,11 @@ const selectedFeature = computed(() => {
 function handleSelect(objectid: number) {
   selectedId.value = objectid
   const feature = selectedFeature.value
-  if (feature) trailMap.value?.zoomToFeature(feature)
+  if (feature) trailMap.value?.zoomToFeatures([feature])
+}
+
+function handleSelectSystem(features: TrailFeature[]) {
+  trailMap.value?.zoomToFeatures(features)
 }
 
 function handleClose() {
@@ -34,7 +39,12 @@ function handleClose() {
     <div class="app__body">
       <aside class="app__list">
         <div class="app__list-scroll">
-          <TrailList v-model:hovered-id="hoveredId" :state="state" @select="handleSelect" />
+          <TrailList
+            v-model:hovered-id="hoveredId"
+            :state="state"
+            @select="handleSelect"
+            @select-system="handleSelectSystem"
+          />
         </div>
         <div v-if="selectedFeature" class="app__detail-overlay">
           <TrailDetail :feature="selectedFeature" @close="handleClose" />
