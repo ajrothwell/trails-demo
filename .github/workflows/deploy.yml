@@ -30,6 +30,8 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+        env:
+          VITE_FA_AUTH_TOKEN: ${{ secrets.VITE_FA_AUTH_TOKEN }}
 
       - run: pnpm build
 
