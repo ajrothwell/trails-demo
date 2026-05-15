@@ -33,13 +33,12 @@ function handleClose() {
     <AppHeader id="main-nav" />
     <div class="app__body">
       <aside class="app__list">
-        <TrailDetail v-if="selectedFeature" :feature="selectedFeature" @close="handleClose" />
-        <TrailList
-          v-else
-          v-model:hovered-id="hoveredId"
-          :state="state"
-          @select="handleSelect"
-        />
+        <div class="app__list-scroll">
+          <TrailList v-model:hovered-id="hoveredId" :state="state" @select="handleSelect" />
+        </div>
+        <div v-if="selectedFeature" class="app__detail-overlay">
+          <TrailDetail :feature="selectedFeature" @close="handleClose" />
+        </div>
       </aside>
       <section class="app__map">
         <TrailMap
@@ -78,8 +77,21 @@ body {
 }
 .app__list {
   flex: 0 0 33%;
-  overflow-y: auto;
+  position: relative;
+  overflow: hidden;
   border-right: 1px solid #e0e0e0;
+}
+.app__list-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+}
+.app__detail-overlay {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  overflow-y: auto;
+  z-index: 1;
 }
 .app__map {
   flex: 1 1 67%;
