@@ -32,7 +32,7 @@ const highlightFilter = computed<FilterSpecification>(() => [
 </script>
 
 <template>
-  <PhilaMap class="trail-map" :center="[-75.16, 39.95]" :zoom="11">
+  <PhilaMap class="trail-map" :center="[-75.12, 39.98]" :zoom="10">
     <MapNavigationControl position="bottom-right" />
     <BasemapToggle position="top-right" />
     <LineLayer
