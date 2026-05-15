@@ -38,7 +38,8 @@ body {
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  height: 100dvh;
+  overflow: hidden;
 }
 .app__body {
   display: flex;
@@ -53,5 +54,6 @@ body {
 .app__map {
   flex: 1 1 67%;
   position: relative;
+  overflow: hidden;
 }
 </style>
