@@ -8,7 +8,7 @@ const QUERY = '?where=1%3D1&outFields=*&outSR=4326&f=geojson'
 
 const UNGROUPED_KEY = 'Other'
 
-function groupByTrailSystem(features: TrailFeature[]): Record<string, TrailFeature[]> {
+export function groupByTrailSystem(features: TrailFeature[]): Record<string, TrailFeature[]> {
   const grouped: Record<string, TrailFeature[]> = {}
   for (const feature of features) {
     const key = feature.properties.trail_system?.trim() || UNGROUPED_KEY

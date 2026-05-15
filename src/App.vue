@@ -5,17 +5,52 @@ import { AppFooter } from '@phila/phila-ui-app-footer'
 import TrailList from '@/components/TrailList.vue'
 import TrailMap from '@/components/TrailMap.vue'
 import TrailDetail from '@/components/TrailDetail.vue'
-import { useTrails } from '@/composables/useTrails'
-import type { TrailFeature } from '@/types'
+import FilterBar from '@/components/FilterBar.vue'
+import type { Filters } from '@/components/FilterBar.vue'
+import { useTrails, groupByTrailSystem } from '@/composables/useTrails'
+import type { TrailFeature, TrailCollection, TrailsState } from '@/types'
 
 const { state } = useTrails()
 const hoveredIds = ref<number[]>([])
 const selectedId = ref<number | null>(null)
 const trailMap = ref<InstanceType<typeof TrailMap> | null>(null)
 
+const filters = ref<Filters>({
+  trail_status: new Set(),
+  trail_surface: new Set(),
+  facility_type: new Set(),
+  major_trail: new Set(),
+})
+
+function matchesFilters(feature: TrailFeature, f: Filters): boolean {
+  for (const key of Object.keys(f) as Array<keyof Filters>) {
+    const selected = f[key]
+    if (selected.size === 0) continue
+    const raw = feature.properties[key]
+    const value = typeof raw === 'string' ? raw.trim() : ''
+    if (!selected.has(value)) return false
+  }
+  return true
+}
+
+const allFeatures = computed<TrailFeature[]>(() =>
+  state.value.status === 'loaded' ? state.value.features : [],
+)
+
+const filteredState = computed<TrailsState>(() => {
+  const s = state.value
+  if (s.status !== 'loaded') return s
+  const features = s.features.filter((f) => matchesFilters(f, filters.value))
+  const grouped = groupByTrailSystem(features)
+  const collection: TrailCollection = { type: 'FeatureCollection', features }
+  return { status: 'loaded', features, grouped, collection }
+})
+
 const selectedFeature = computed(() => {
-  if (state.value.status !== 'loaded' || selectedId.value == null) return null
-  return state.value.features.find((f) => f.properties.objectid === selectedId.value) ?? null
+  if (filteredState.value.status !== 'loaded' || selectedId.value == null) return null
+  return (
+    filteredState.value.features.find((f) => f.properties.objectid === selectedId.value) ?? null
+  )
 })
 
 const highlightIds = computed<number[]>(() =>
@@ -40,12 +75,13 @@ function handleClose() {
 <template>
   <div class="app">
     <AppHeader id="main-nav" />
+    <FilterBar v-model:filters="filters" :features="allFeatures" />
     <div class="app__body">
       <aside class="app__list">
         <div class="app__list-scroll">
           <TrailList
             v-model:hovered-ids="hoveredIds"
-            :state="state"
+            :state="filteredState"
             @select="handleSelect"
             @select-system="handleSelectSystem"
           />
@@ -57,7 +93,7 @@ function handleClose() {
       <section class="app__map">
         <TrailMap
           ref="trailMap"
-          :state="state"
+          :state="filteredState"
           :highlight-ids="highlightIds"
           @select="handleSelect"
         />
