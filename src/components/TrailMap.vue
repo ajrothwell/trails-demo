@@ -6,10 +6,12 @@ import {
   MapNavigationControl,
   BasemapToggle,
 } from '@phila/phila-ui-map-core'
+import type { FilterSpecification } from 'maplibre-gl'
 import type { TrailsState } from '@/types'
 
 const props = defineProps<{
   state: TrailsState
+  hoveredId: number | null
 }>()
 
 const EMPTY_COLLECTION = {
@@ -21,6 +23,12 @@ const source = computed(() => ({
   type: 'geojson' as const,
   data: props.state.status === 'loaded' ? props.state.collection : EMPTY_COLLECTION,
 }))
+
+const highlightFilter = computed<FilterSpecification>(() => [
+  '==',
+  ['get', 'objectid'],
+  props.hoveredId ?? -1,
+])
 </script>
 
 <template>
@@ -31,6 +39,12 @@ const source = computed(() => ({
       id="trails-base"
       :source="source"
       :paint="{ 'line-color': '#2176d2', 'line-width': 2 }"
+    />
+    <LineLayer
+      id="trails-highlight"
+      :source="source"
+      :filter="highlightFilter"
+      :paint="{ 'line-color': '#ffb02e', 'line-width': 5 }"
     />
   </PhilaMap>
 </template>

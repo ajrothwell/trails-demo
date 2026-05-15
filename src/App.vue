@@ -18,7 +18,7 @@ const hoveredId = ref<number | null>(null)
         <TrailList v-model:hovered-id="hoveredId" :state="state" />
       </aside>
       <section class="app__map">
-        <TrailMap :state="state" />
+        <TrailMap :state="state" :hovered-id="hoveredId" />
       </section>
     </div>
     <AppFooter />
