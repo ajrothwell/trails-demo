@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { AppHeader } from '@phila/phila-ui-app-header'
 import { AppFooter } from '@phila/phila-ui-app-footer'
 import TrailList from '@/components/TrailList.vue'
+import TrailMap from '@/components/TrailMap.vue'
 import { useTrails } from '@/composables/useTrails'
 
 const { state } = useTrails()
@@ -17,7 +18,7 @@ const hoveredId = ref<number | null>(null)
         <TrailList v-model:hovered-id="hoveredId" :state="state" />
       </aside>
       <section class="app__map">
-        <p style="padding: 1rem">Map goes here</p>
+        <TrailMap :state="state" />
       </section>
     </div>
     <AppFooter />
