@@ -6,12 +6,21 @@ import {
   MapNavigationControl,
   BasemapToggle,
 } from '@phila/phila-ui-map-core'
+import type { CyclomediaConfig } from '@phila/phila-ui-map-core'
 import type {
   FilterSpecification,
   Map as MapLibreMap,
   MapLayerMouseEvent,
 } from 'maplibre-gl'
 import type { TrailFeature, TrailsState } from '@/types'
+
+const cyclomediaConfig: CyclomediaConfig = {
+  username: import.meta.env.VITE_CYCLOMEDIA_USERNAME || '',
+  password: import.meta.env.VITE_CYCLOMEDIA_PASSWORD || '',
+  apiKey: import.meta.env.VITE_CYCLOMEDIA_API_KEY || '',
+  srs: 'EPSG:4326',
+  locale: 'en-US',
+}
 
 const props = defineProps<{
   state: TrailsState
@@ -89,6 +98,9 @@ defineExpose({ zoomToFeature })
     class="trail-map"
     :center="[-75.12, 39.98]"
     :zoom="10"
+    :enable-cyclomedia="true"
+    :cyclomedia-config="cyclomediaConfig"
+    cyclomedia-button-position="top-right"
     @load="mapInstance = $event"
   >
     <MapNavigationControl position="bottom-right" />
