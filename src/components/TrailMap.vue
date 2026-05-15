@@ -33,16 +33,10 @@ const source = computed(() => ({
   data: props.state.status === 'loaded' ? props.state.collection : EMPTY_COLLECTION,
 }))
 
-const hoverFilter = computed<FilterSpecification>(() => [
+const highlightFilter = computed<FilterSpecification>(() => [
   '==',
   ['get', 'objectid'],
-  props.hoveredId ?? -1,
-])
-
-const selectedFilter = computed<FilterSpecification>(() => [
-  '==',
-  ['get', 'objectid'],
-  props.selectedId ?? -1,
+  props.selectedId ?? props.hoveredId ?? -1,
 ])
 
 const mapInstance = ref<MapLibreMap | null>(null)
@@ -105,15 +99,9 @@ defineExpose({ zoomToFeature })
       :paint="{ 'line-color': '#2176d2', 'line-width': 2 }"
     />
     <LineLayer
-      id="trails-selected"
-      :source="source"
-      :filter="selectedFilter"
-      :paint="{ 'line-color': '#d22d2d', 'line-width': 5 }"
-    />
-    <LineLayer
       id="trails-highlight"
       :source="source"
-      :filter="hoverFilter"
+      :filter="highlightFilter"
       :paint="{ 'line-color': '#ffb02e', 'line-width': 5 }"
     />
     <LineLayer
