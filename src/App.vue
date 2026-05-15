@@ -8,6 +8,13 @@ import { useTrails } from '@/composables/useTrails'
 
 const { state } = useTrails()
 const hoveredId = ref<number | null>(null)
+const trailMap = ref<InstanceType<typeof TrailMap> | null>(null)
+
+function handleSelect(objectid: number) {
+  if (state.value.status !== 'loaded') return
+  const feature = state.value.features.find((f) => f.properties.objectid === objectid)
+  if (feature) trailMap.value?.zoomToFeature(feature)
+}
 </script>
 
 <template>
@@ -15,10 +22,10 @@ const hoveredId = ref<number | null>(null)
     <AppHeader id="main-nav" />
     <div class="app__body">
       <aside class="app__list">
-        <TrailList v-model:hovered-id="hoveredId" :state="state" />
+        <TrailList v-model:hovered-id="hoveredId" :state="state" @select="handleSelect" />
       </aside>
       <section class="app__map">
-        <TrailMap :state="state" :hovered-id="hoveredId" />
+        <TrailMap ref="trailMap" :state="state" :hovered-id="hoveredId" />
       </section>
     </div>
     <AppFooter :sub-footer-only="true" />

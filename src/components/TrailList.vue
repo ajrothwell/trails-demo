@@ -9,6 +9,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:hoveredId': [value: number | null]
+  select: [objectid: number]
 }>()
 
 function displayLabel(feature: TrailFeature): string {
@@ -40,6 +41,7 @@ const groups = computed(() => {
             :class="{ 'trail-list__item--hovered': hoveredId === feature.properties.objectid }"
             @mouseenter="emit('update:hoveredId', feature.properties.objectid)"
             @mouseleave="emit('update:hoveredId', null)"
+            @click="emit('select', feature.properties.objectid)"
           >
             {{ displayLabel(feature) }}
           </li>
@@ -78,7 +80,7 @@ const groups = computed(() => {
 }
 .trail-list__item {
   padding: 0.35rem 1rem;
-  cursor: default;
+  cursor: pointer;
   font-size: 0.95rem;
 }
 .trail-list__item--hovered {
