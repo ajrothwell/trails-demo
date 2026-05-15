@@ -21,7 +21,7 @@ const hoveredId = ref<number | null>(null)
         <TrailMap :state="state" :hovered-id="hoveredId" />
       </section>
     </div>
-    <AppFooter />
+    <AppFooter :sub-footer-only="true" />
   </div>
 </template>
 
