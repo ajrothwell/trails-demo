@@ -6,12 +6,21 @@ import {
   MapNavigationControl,
   BasemapToggle,
 } from '@phila/phila-ui-map-core'
-import type { FilterSpecification, Map as MapLibreMap } from 'maplibre-gl'
+import type {
+  FilterSpecification,
+  Map as MapLibreMap,
+  MapLayerMouseEvent,
+} from 'maplibre-gl'
 import type { TrailFeature, TrailsState } from '@/types'
 
 const props = defineProps<{
   state: TrailsState
   hoveredId: number | null
+  selectedId: number | null
+}>()
+
+const emit = defineEmits<{
+  select: [objectid: number]
 }>()
 
 const EMPTY_COLLECTION = {
@@ -24,10 +33,16 @@ const source = computed(() => ({
   data: props.state.status === 'loaded' ? props.state.collection : EMPTY_COLLECTION,
 }))
 
-const highlightFilter = computed<FilterSpecification>(() => [
+const hoverFilter = computed<FilterSpecification>(() => [
   '==',
   ['get', 'objectid'],
   props.hoveredId ?? -1,
+])
+
+const selectedFilter = computed<FilterSpecification>(() => [
+  '==',
+  ['get', 'objectid'],
+  props.selectedId ?? -1,
 ])
 
 const mapInstance = ref<MapLibreMap | null>(null)
@@ -66,6 +81,12 @@ function zoomToFeature(feature: TrailFeature): void {
   map.fitBounds(bounds, { padding: 60, maxZoom: 17, duration: 600 })
 }
 
+function handleLineClick(event: MapLayerMouseEvent): void {
+  const feature = event.features?.[0]
+  const objectid = feature?.properties?.objectid
+  if (typeof objectid === 'number') emit('select', objectid)
+}
+
 defineExpose({ zoomToFeature })
 </script>
 
@@ -84,10 +105,22 @@ defineExpose({ zoomToFeature })
       :paint="{ 'line-color': '#2176d2', 'line-width': 2 }"
     />
     <LineLayer
+      id="trails-selected"
+      :source="source"
+      :filter="selectedFilter"
+      :paint="{ 'line-color': '#d22d2d', 'line-width': 5 }"
+    />
+    <LineLayer
       id="trails-highlight"
       :source="source"
-      :filter="highlightFilter"
+      :filter="hoverFilter"
       :paint="{ 'line-color': '#ffb02e', 'line-width': 5 }"
+    />
+    <LineLayer
+      id="trails-click-target"
+      :source="source"
+      :paint="{ 'line-color': '#000000', 'line-opacity': 0.001, 'line-width': 14 }"
+      @click="handleLineClick"
     />
   </PhilaMap>
 </template>

@@ -1,19 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { AppHeader } from '@phila/phila-ui-app-header'
 import { AppFooter } from '@phila/phila-ui-app-footer'
 import TrailList from '@/components/TrailList.vue'
 import TrailMap from '@/components/TrailMap.vue'
+import TrailDetail from '@/components/TrailDetail.vue'
 import { useTrails } from '@/composables/useTrails'
 
 const { state } = useTrails()
 const hoveredId = ref<number | null>(null)
+const selectedId = ref<number | null>(null)
 const trailMap = ref<InstanceType<typeof TrailMap> | null>(null)
 
+const selectedFeature = computed(() => {
+  if (state.value.status !== 'loaded' || selectedId.value == null) return null
+  return state.value.features.find((f) => f.properties.objectid === selectedId.value) ?? null
+})
+
 function handleSelect(objectid: number) {
-  if (state.value.status !== 'loaded') return
-  const feature = state.value.features.find((f) => f.properties.objectid === objectid)
+  selectedId.value = objectid
+  const feature = selectedFeature.value
   if (feature) trailMap.value?.zoomToFeature(feature)
+}
+
+function handleClose() {
+  selectedId.value = null
 }
 </script>
 
@@ -22,10 +33,22 @@ function handleSelect(objectid: number) {
     <AppHeader id="main-nav" />
     <div class="app__body">
       <aside class="app__list">
-        <TrailList v-model:hovered-id="hoveredId" :state="state" @select="handleSelect" />
+        <TrailDetail v-if="selectedFeature" :feature="selectedFeature" @close="handleClose" />
+        <TrailList
+          v-else
+          v-model:hovered-id="hoveredId"
+          :state="state"
+          @select="handleSelect"
+        />
       </aside>
       <section class="app__map">
-        <TrailMap ref="trailMap" :state="state" :hovered-id="hoveredId" />
+        <TrailMap
+          ref="trailMap"
+          :state="state"
+          :hovered-id="hoveredId"
+          :selected-id="selectedId"
+          @select="handleSelect"
+        />
       </section>
     </div>
     <AppFooter :sub-footer-only="true" />
