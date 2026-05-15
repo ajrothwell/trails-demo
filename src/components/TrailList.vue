@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { TrailsState } from '@/types'
+import type { TrailFeature, TrailsState } from '@/types'
 
 const props = defineProps<{
   state: TrailsState
@@ -10,6 +10,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:hoveredId': [value: number | null]
 }>()
+
+function displayLabel(feature: TrailFeature): string {
+  const name = feature.properties.name?.trim() || '(unnamed)'
+  const segment = feature.properties.segment?.trim()
+  return segment ? `${name} — ${segment}` : name
+}
 
 const groups = computed(() => {
   if (props.state.status !== 'loaded') return []
@@ -35,7 +41,7 @@ const groups = computed(() => {
             @mouseenter="emit('update:hoveredId', feature.properties.objectid)"
             @mouseleave="emit('update:hoveredId', null)"
           >
-            {{ feature.properties.name ?? '(unnamed)' }}
+            {{ displayLabel(feature) }}
           </li>
         </ul>
       </section>

@@ -16,7 +16,11 @@ function groupByTrailSystem(features: TrailFeature[]): Record<string, TrailFeatu
     grouped[key].push(feature)
   }
   for (const key of Object.keys(grouped)) {
-    grouped[key].sort((a, b) => (a.properties.name ?? '').localeCompare(b.properties.name ?? ''))
+    grouped[key].sort((a, b) => {
+      const nameCmp = (a.properties.name ?? '').localeCompare(b.properties.name ?? '')
+      if (nameCmp !== 0) return nameCmp
+      return (a.properties.segment ?? '').localeCompare(b.properties.segment ?? '')
+    })
   }
   return grouped
 }
