@@ -51,8 +51,6 @@ const FIELDS: FieldConfig[] = [
   { key: 'last_edited_date', label: 'Last edited', format: formatDate },
   { key: 'created_user', label: 'Created by' },
   { key: 'last_edited_user', label: 'Last edited by' },
-  { key: 'objectid', label: 'Object ID' },
-  { key: 'globalid', label: 'Global ID' },
 ]
 
 const rows = computed(() =>

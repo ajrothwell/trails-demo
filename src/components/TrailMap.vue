@@ -5,6 +5,7 @@ import {
   LineLayer,
   MapNavigationControl,
   BasemapToggle,
+  MapFloatingPanel,
 } from '@phila/phila-ui-map-core'
 import type { CyclomediaConfig } from '@phila/phila-ui-map-core'
 import type {
@@ -36,6 +37,20 @@ const EMPTY_COLLECTION = {
   type: 'FeatureCollection' as const,
   features: [],
 }
+
+const STATUS_COLORS: Array<{ status: string; color: string }> = [
+  { status: 'Existing', color: '#1b6d2f' },
+  { status: 'In Progress', color: '#2176d2' },
+  { status: 'Conceptual', color: '#ffb02e' },
+  { status: 'Feasibility/Pipeline', color: '#8e44ad' },
+]
+
+const statusColorExpression = [
+  'match',
+  ['get', 'trail_status'],
+  ...STATUS_COLORS.flatMap(({ status, color }) => [status, color]),
+  '#666666',
+] as const
 
 const source = computed(() => ({
   type: 'geojson' as const,
@@ -127,13 +142,13 @@ defineExpose({ zoomToFeatures })
     <LineLayer
       id="trails-base"
       :source="source"
-      :paint="{ 'line-color': '#2176d2', 'line-width': 2 }"
+      :paint="{ 'line-color': statusColorExpression, 'line-width': 2 }"
     />
     <LineLayer
       id="trails-highlight"
       :source="source"
       :filter="highlightFilter"
-      :paint="{ 'line-color': '#ffb02e', 'line-width': 5 }"
+      :paint="{ 'line-color': '#00FFFF', 'line-width': 5 }"
     />
     <LineLayer
       id="trails-click-target"
@@ -143,6 +158,19 @@ defineExpose({ zoomToFeatures })
       @mousemove="handleLineMousemove"
       @mouseleave="handleLineMouseleave"
     />
+    <MapFloatingPanel
+      position="bottom-left"
+      :leave-room-for-controls="false"
+      aria-label="Trail status legend"
+    >
+      <h4 class="trail-legend__title">Status</h4>
+      <ul class="trail-legend__rows">
+        <li v-for="item in STATUS_COLORS" :key="item.status" class="trail-legend__row">
+          <span class="trail-legend__swatch" :style="{ backgroundColor: item.color }" />
+          <span class="trail-legend__label">{{ item.status }}</span>
+        </li>
+      </ul>
+    </MapFloatingPanel>
   </PhilaMap>
 </template>
 
@@ -150,5 +178,38 @@ defineExpose({ zoomToFeatures })
 .trail-map {
   width: 100%;
   height: 100%;
+}
+.trail-legend__title {
+  margin: 0 0 0.5rem 0;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid #d0d4d9;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.trail-legend__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 9rem;
+  font-size: 0.8rem;
+  color: #1a1a1a;
+}
+.trail-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.trail-legend__swatch {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.trail-legend__label {
+  flex: 1;
 }
 </style>
