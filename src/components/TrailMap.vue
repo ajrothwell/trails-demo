@@ -9,6 +9,7 @@ import {
 } from '@phila/phila-ui-map-core'
 import type { CyclomediaConfig } from '@phila/phila-ui-map-core'
 import type {
+  DataDrivenPropertyValueSpecification,
   FilterSpecification,
   Map as MapLibreMap,
   MapLayerMouseEvent,
@@ -38,19 +39,24 @@ const EMPTY_COLLECTION = {
   features: [],
 }
 
-const STATUS_COLORS: Array<{ status: string; color: string }> = [
-  { status: 'Existing', color: '#1b6d2f' },
-  { status: 'In Progress', color: '#2176d2' },
-  { status: 'Conceptual', color: '#ffb02e' },
-  { status: 'Feasibility/Pipeline', color: '#8e44ad' },
-]
+const STATUS_COLORS = {
+  'Existing': '#1b6d2f',
+  'In Progress': '#2176d2',
+  'Conceptual': '#ffb02e',
+  'Feasibility/Pipeline': '#8e44ad',
+} as const
 
-const statusColorExpression = [
+const statusColorExpression: DataDrivenPropertyValueSpecification<string> = [
   'match',
   ['get', 'trail_status'],
-  ...STATUS_COLORS.flatMap(({ status, color }) => [status, color]),
+  'Existing', STATUS_COLORS['Existing'],
+  'In Progress', STATUS_COLORS['In Progress'],
+  'Conceptual', STATUS_COLORS['Conceptual'],
+  'Feasibility/Pipeline', STATUS_COLORS['Feasibility/Pipeline'],
   '#666666',
-] as const
+]
+
+const legendItems = Object.entries(STATUS_COLORS) as Array<[keyof typeof STATUS_COLORS, string]>
 
 const source = computed(() => ({
   type: 'geojson' as const,
@@ -165,9 +171,9 @@ defineExpose({ zoomToFeatures })
     >
       <h4 class="trail-legend__title">Status</h4>
       <ul class="trail-legend__rows">
-        <li v-for="item in STATUS_COLORS" :key="item.status" class="trail-legend__row">
-          <span class="trail-legend__swatch" :style="{ backgroundColor: item.color }" />
-          <span class="trail-legend__label">{{ item.status }}</span>
+        <li v-for="[status, color] in legendItems" :key="status" class="trail-legend__row">
+          <span class="trail-legend__swatch" :style="{ backgroundColor: color }" />
+          <span class="trail-legend__label">{{ status }}</span>
         </li>
       </ul>
     </MapFloatingPanel>
