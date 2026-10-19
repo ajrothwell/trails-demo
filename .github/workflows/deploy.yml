@@ -35,7 +35,11 @@ jobs:
         env:
           VITE_FA_AUTH_TOKEN: ${{ secrets.VITE_FA_AUTH_TOKEN }}
 
+      # The env var must also be present here or pnpm drops the whole project .npmrc,
+      # including the @fortawesome scoped-registry line.
       - run: pnpm install --frozen-lockfile
+        env:
+          VITE_FA_AUTH_TOKEN: ${{ secrets.VITE_FA_AUTH_TOKEN }}
 
       - run: pnpm build
         env:
