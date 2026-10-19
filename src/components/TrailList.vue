@@ -5,91 +5,92 @@ import type { TrailFeature, TrailsState } from '@/types'
 const props = defineProps<{
   state: TrailsState
   hoveredIds: number[]
+  selectedId: number | null
 }>()
 
 const emit = defineEmits<{
   'update:hoveredIds': [value: number[]]
-  select: [objectid: number]
-  selectSystem: [features: TrailFeature[]]
+  zoomTo: [features: TrailFeature[]]
 }>()
 
-function singleHoveredId(): number | null {
-  return props.hoveredIds.length === 1 ? props.hoveredIds[0] : null
+/** One list row: every segment sharing a name + segment label. */
+interface TrailRow {
+  id: number
+  label: string
+  features: TrailFeature[]
+  objectids: Set<number>
 }
 
-const listRoot = ref<HTMLDivElement | null>(null)
-
-function ensureVisible(objectid: number): void {
-  const root = listRoot.value
-  if (!root) return
-  const el = root.querySelector<HTMLLIElement>(`[data-objectid="${objectid}"]`)
-  if (!el) return
-  const container = root.parentElement
-  if (container) {
-    const elRect = el.getBoundingClientRect()
-    const cRect = container.getBoundingClientRect()
-    if (elRect.top >= cRect.top && elRect.bottom <= cRect.bottom) return
-  }
-  el.scrollIntoView({ block: 'nearest', behavior: 'instant' })
+/** A row is hovered when the hovered ids all belong to it — a map hover on one of its
+ *  segments, or a hover on the row itself — but not when a whole system is hovered. */
+function isRowHovered(row: TrailRow): boolean {
+  const ids = props.hoveredIds
+  return ids.length > 0 && ids.every((id) => row.objectids.has(id))
 }
 
-watch(
-  () => props.hoveredIds,
-  async (ids) => {
-    if (ids.length !== 1) return
-    await nextTick()
-    ensureVisible(ids[0])
-  },
-)
-
-function baseLabel(feature: TrailFeature): string {
+function rowLabel(feature: TrailFeature): string {
   const name = feature.properties.name?.trim() || '(unnamed)'
   const segment = feature.properties.segment?.trim()
   return segment ? `${name} — ${segment}` : name
 }
 
-function disambiguator(feature: TrailFeature, siblings: TrailFeature[]): string {
-  const ft = feature.properties.facility_type?.trim()
-  const ftValues = siblings.map((f) => f.properties.facility_type?.trim() || '')
-  if (ft && new Set(ftValues).size === siblings.length) return ft
-
-  const len = feature.properties.length_miles
-  const lenValues = siblings.map((f) => f.properties.length_miles ?? -1)
-  if (len != null && new Set(lenValues).size === siblings.length) return `${len.toFixed(2)} mi`
-
-  return `#${feature.properties.objectid}`
-}
-
-interface LabeledFeature {
-  objectid: number
-  feature: TrailFeature
-  label: string
-}
-
-const groups = computed<Array<readonly [string, LabeledFeature[]]>>(() => {
+const groups = computed<Array<readonly [string, TrailRow[]]>>(() => {
   if (props.state.status !== 'loaded') return []
   const entries = Object.entries(props.state.grouped).sort(([a], [b]) => a.localeCompare(b))
 
   return entries.map(([system, features]) => {
-    const bases = new Map<string, TrailFeature[]>()
+    const rows = new Map<string, TrailRow>()
     for (const feature of features) {
-      const key = baseLabel(feature)
-      const list = bases.get(key) ?? []
-      list.push(feature)
-      bases.set(key, list)
+      const label = rowLabel(feature)
+      const objectid = feature.properties.objectid
+      const row = rows.get(label)
+      if (row) {
+        row.features.push(feature)
+        row.objectids.add(objectid)
+      } else {
+        rows.set(label, { id: objectid, label, features: [feature], objectids: new Set([objectid]) })
+      }
     }
-
-    const labeled: LabeledFeature[] = features.map((feature) => {
-      const base = baseLabel(feature)
-      const siblings = bases.get(base) ?? [feature]
-      const label =
-        siblings.length === 1 ? base : `${base} (${disambiguator(feature, siblings)})`
-      return { objectid: feature.properties.objectid, feature, label }
-    })
-
-    return [system, labeled] as const
+    return [system, [...rows.values()]] as const
   })
 })
+
+const rowByObjectid = computed<Map<number, TrailRow>>(() => {
+  const index = new Map<number, TrailRow>()
+  for (const [, rows] of groups.value) {
+    for (const row of rows) {
+      for (const objectid of row.objectids) index.set(objectid, row)
+    }
+  }
+  return index
+})
+
+const listRoot = ref<HTMLDivElement | null>(null)
+
+function scrollRowToTop(rowId: number): void {
+  const el = listRoot.value?.querySelector<HTMLLIElement>(`[data-row-id="${rowId}"]`)
+  el?.scrollIntoView({ block: 'start', behavior: 'instant' })
+}
+
+// Scroll the selected segment's row to the top so it's on screen when the detail panel closes.
+watch(
+  () => props.selectedId,
+  async (objectid) => {
+    if (objectid == null) return
+    const row = rowByObjectid.value.get(objectid)
+    if (!row) return
+    await nextTick()
+    scrollRowToTop(row.id)
+  },
+)
+
+function systemObjectids(rows: TrailRow[]): number[] {
+  return rows.flatMap((row) => [...row.objectids])
+}
+
+function systemFeatures(rows: TrailRow[]): TrailFeature[] {
+  return rows.flatMap((row) => row.features)
+}
 </script>
 
 <template>
@@ -99,27 +100,27 @@ const groups = computed<Array<readonly [string, LabeledFeature[]]>>(() => {
       {{ state.message }}
     </p>
     <template v-else>
-      <section v-for="[system, items] in groups" :key="system" class="trail-list__section">
+      <section v-for="[system, rows] in groups" :key="system" class="trail-list__section">
         <h2
           class="trail-list__heading"
-          @mouseenter="emit('update:hoveredIds', items.map((i) => i.objectid))"
+          @mouseenter="emit('update:hoveredIds', systemObjectids(rows))"
           @mouseleave="emit('update:hoveredIds', [])"
-          @click="emit('selectSystem', items.map((i) => i.feature))"
+          @click="emit('zoomTo', systemFeatures(rows))"
         >
           {{ system }}
         </h2>
         <ul class="trail-list__items">
           <li
-            v-for="item in items"
-            :key="item.objectid"
+            v-for="row in rows"
+            :key="row.id"
             class="trail-list__item"
-            :class="{ 'trail-list__item--hovered': singleHoveredId() === item.objectid }"
-            :data-objectid="item.objectid"
-            @mouseenter="emit('update:hoveredIds', [item.objectid])"
+            :class="{ 'trail-list__item--hovered': isRowHovered(row) }"
+            :data-row-id="row.id"
+            @mouseenter="emit('update:hoveredIds', [...row.objectids])"
             @mouseleave="emit('update:hoveredIds', [])"
-            @click="emit('select', item.objectid)"
+            @click="emit('zoomTo', row.features)"
           >
-            {{ item.label }}
+            {{ row.label }}
           </li>
         </ul>
       </section>

@@ -63,7 +63,7 @@ function handleSelect(objectid: number) {
   if (feature) trailMap.value?.zoomToFeatures([feature])
 }
 
-function handleSelectSystem(features: TrailFeature[]) {
+function handleZoomTo(features: TrailFeature[]) {
   trailMap.value?.zoomToFeatures(features)
 }
 
@@ -86,8 +86,8 @@ function handleMapHover(objectid: number | null) {
           <TrailList
             v-model:hovered-ids="hoveredIds"
             :state="filteredState"
-            @select="handleSelect"
-            @select-system="handleSelectSystem"
+            :selected-id="selectedId"
+            @zoom-to="handleZoomTo"
           />
         </div>
         <div v-if="selectedFeature" class="app__detail-overlay">
