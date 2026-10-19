@@ -29,9 +29,13 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      # pnpm ignores env-var credentials in a committed project .npmrc, so the Font Awesome
+      # token has to come from the runner's user-level config instead.
+      - run: pnpm config set "//npm.fontawesome.com/:_authToken" "$VITE_FA_AUTH_TOKEN"
         env:
           VITE_FA_AUTH_TOKEN: ${{ secrets.VITE_FA_AUTH_TOKEN }}
+
+      - run: pnpm install --frozen-lockfile
 
       - run: pnpm build
         env:
