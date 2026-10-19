@@ -32,6 +32,11 @@ export type TrailFeature = Feature<TrailGeometry, TrailProperties>
 
 export type TrailCollection = FeatureCollection<TrailGeometry, TrailProperties>
 
+/** One page of a FeatureServer query; the server flags when more pages remain. */
+export type TrailPage = TrailCollection & {
+  properties?: { exceededTransferLimit?: boolean }
+}
+
 export type TrailsState =
   | { status: 'loading' }
   | {
