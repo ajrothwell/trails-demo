@@ -1,4 +1,4 @@
-import type { Feature, FeatureCollection, LineString, MultiLineString } from 'geojson'
+import type { Feature, FeatureCollection, LineString, MultiLineString, Point } from 'geojson'
 
 export interface TrailProperties {
   objectid: number
@@ -33,9 +33,24 @@ export type TrailFeature = Feature<TrailGeometry, TrailProperties>
 export type TrailCollection = FeatureCollection<TrailGeometry, TrailProperties>
 
 /** One page of a FeatureServer query; the server flags when more pages remain. */
-export type TrailPage = TrailCollection & {
+export type FeaturePage<F extends Feature> = {
+  type: 'FeatureCollection'
+  features: F[]
   properties?: { exceededTransferLimit?: boolean }
 }
+
+export interface TrailheadProperties {
+  objectid: number
+  f_id: string | null
+  trailheadname: string | null
+  map_search: string | null
+  parking: string | null
+  horseaccess: string | null
+  accessibility: string | null
+  bicycle: string | null
+}
+
+export type TrailheadFeature = Feature<Point, TrailheadProperties>
 
 export type TrailsState =
   | { status: 'loading' }

@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import {
   Map as PhilaMap,
   LineLayer,
+  CircleLayer,
+  MapPopup,
   MapNavigationControl,
   BasemapToggle,
   MapFloatingPanel,
@@ -14,7 +16,8 @@ import type {
   Map as MapLibreMap,
   MapLayerMouseEvent,
 } from 'maplibre-gl'
-import type { TrailFeature, TrailsState } from '@/types'
+import type { TrailFeature, TrailheadFeature, TrailheadProperties, TrailsState } from '@/types'
+import { useTrailheads } from '@/composables/useTrailheads'
 
 const cyclomediaConfig: CyclomediaConfig = {
   username: import.meta.env.VITE_CYCLOMEDIA_USERNAME || '',
@@ -57,6 +60,56 @@ const statusColorExpression: DataDrivenPropertyValueSpecification<string> = [
 ]
 
 const legendItems = Object.entries(STATUS_COLORS) as Array<[keyof typeof STATUS_COLORS, string]>
+
+// Trailhead data carries no trail or status, so every point uses the built-trail color.
+const TRAILHEAD_COLOR = STATUS_COLORS['Existing']
+
+const TRAILHEAD_LAYER_ID = 'trailheads'
+
+// Popup rows in display order; f_id and objectid are internal ids and stay hidden.
+const TRAILHEAD_FIELDS: Array<[keyof TrailheadProperties, string]> = [
+  ['map_search', 'Map search name'],
+  ['parking', 'Parking'],
+  ['bicycle', 'Bicycle'],
+  ['accessibility', 'Accessibility'],
+  ['horseaccess', 'Horse access'],
+]
+
+const { trailheads } = useTrailheads()
+
+const trailheadSource = computed(() => ({
+  type: 'geojson' as const,
+  data: { type: 'FeatureCollection' as const, features: trailheads.value },
+}))
+
+const openTrailhead = ref<TrailheadFeature | null>(null)
+
+// A list of zero or one, so each popup's close handler keeps the trailhead it was opened for.
+const openTrailheads = computed(() => (openTrailhead.value ? [openTrailhead.value] : []))
+
+/** Returns the popup rows for a trailhead, skipping blank values. */
+function trailheadRows(trailhead: TrailheadFeature): Array<{ label: string; value: string }> {
+  return TRAILHEAD_FIELDS.flatMap(([field, label]) => {
+    const value = trailhead.properties[field]
+    const text = typeof value === 'string' ? value.trim() : ''
+    return text ? [{ label, value: text }] : []
+  })
+}
+
+function handleTrailheadClick(event: MapLayerMouseEvent): void {
+  const objectid = event.features?.[0]?.properties?.objectid
+  openTrailhead.value =
+    trailheads.value.find((trailhead) => trailhead.properties.objectid === objectid) ?? null
+}
+
+// Clicking a second trailhead also closes the first one's popup; only clear if the closing popup is the current one.
+function handleTrailheadClose(objectid: number): void {
+  if (openTrailhead.value?.properties.objectid === objectid) openTrailhead.value = null
+}
+
+function isTrailheadAt(event: MapLayerMouseEvent): boolean {
+  return event.target.queryRenderedFeatures(event.point, { layers: [TRAILHEAD_LAYER_ID] }).length > 0
+}
 
 const source = computed(() => ({
   type: 'geojson' as const,
@@ -108,6 +161,7 @@ function zoomToFeatures(features: TrailFeature[]): void {
 }
 
 function handleLineClick(event: MapLayerMouseEvent): void {
+  if (isTrailheadAt(event)) return
   const feature = event.features?.[0]
   const objectid = feature?.properties?.objectid
   if (typeof objectid === 'number') emit('select', objectid)
@@ -164,6 +218,33 @@ defineExpose({ zoomToFeatures })
       @mousemove="handleLineMousemove"
       @mouseleave="handleLineMouseleave"
     />
+    <CircleLayer
+      :id="TRAILHEAD_LAYER_ID"
+      :source="trailheadSource"
+      :paint="{
+        'circle-color': TRAILHEAD_COLOR,
+        'circle-radius': 6,
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 2,
+      }"
+      @click="handleTrailheadClick"
+    />
+    <MapPopup
+      v-for="trailhead in openTrailheads"
+      :key="trailhead.properties.objectid"
+      :lng-lat="trailhead.geometry.coordinates as [number, number]"
+      @close="handleTrailheadClose(trailhead.properties.objectid)"
+    >
+      <div class="trailhead-popup">
+        <h4 class="trailhead-popup__title">{{ trailhead.properties.trailheadname }}</h4>
+        <dl class="trailhead-popup__rows">
+          <template v-for="row in trailheadRows(trailhead)" :key="row.label">
+            <dt>{{ row.label }}</dt>
+            <dd>{{ row.value }}</dd>
+          </template>
+        </dl>
+      </div>
+    </MapPopup>
     <MapFloatingPanel
       position="bottom-left"
       :leave-room-for-controls="false"
@@ -174,6 +255,13 @@ defineExpose({ zoomToFeatures })
         <li v-for="[status, color] in legendItems" :key="status" class="trail-legend__row">
           <span class="trail-legend__swatch" :style="{ backgroundColor: color }" />
           <span class="trail-legend__label">{{ status }}</span>
+        </li>
+        <li class="trail-legend__row">
+          <span
+            class="trail-legend__swatch trail-legend__swatch--point"
+            :style="{ backgroundColor: TRAILHEAD_COLOR }"
+          />
+          <span class="trail-legend__label">Trailhead</span>
         </li>
       </ul>
     </MapFloatingPanel>
@@ -215,7 +303,34 @@ defineExpose({ zoomToFeatures })
   border-radius: 2px;
   flex-shrink: 0;
 }
+.trail-legend__swatch--point {
+  width: 10px;
+  height: 10px;
+  margin: 0 4px;
+  border-radius: 50%;
+}
 .trail-legend__label {
   flex: 1;
+}
+.trailhead-popup__title {
+  margin: 0 0 0.5rem 0;
+  padding-right: 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.trailhead-popup__rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+  font-size: 0.8rem;
+  color: #1a1a1a;
+}
+.trailhead-popup__rows dt {
+  font-weight: 600;
+}
+.trailhead-popup__rows dd {
+  margin: 0;
 }
 </style>
